@@ -1,7 +1,11 @@
 from rest_framework import serializers
-from .models import User, CustomerProfile, ArtisanProfile
+from django.contrib.auth import get_user_model
+from .models import CustomerProfile, ArtisanProfile
 from locations.models import Location
 from services.models import ServiceCategory
+
+# Get our custom User model
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -52,27 +56,65 @@ class ArtisanProfileSerializer(serializers.ModelSerializer):
         return profile
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.Serializer):
     """
     Serializer for user registration.
+    (Switched from ModelSerializer to a standard Serializer for more control)
     """
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
-    
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'password', 'user_type']
-        extra_kwargs = {'password': {'write_only': True}}
-    
+
+    # We need to explicitly validate the email to ensure it's unique
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return value
+
+    def create(self, validated_data):
+        # A more robust way to create the user, passing user_type directly
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            user_type=validated_data['user_type']
+        )
+        if validated_data['user_type'] == 'customer':
+            CustomerProfile.objects.create(user=user)
+        elif validated_data['user_type'] == 'artisan':
+            ArtisanProfile.objects.create(user=user)
+        return user
+
+
+
+class RegisterSerializer(serializers.Serializer):
+    """
+    Serializer for user registration.
+    (Switched from ModelSerializer to a standard Serializer for more control)
+    """
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
+
+    # We need to explicitly validate the email to ensure it's unique
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return value
+
     def create(self, validated_data):
         user_type = validated_data.pop('user_type')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            user_type=user_type
         )
-        # Create a blank profile based on user type
+        user.user_type = user_type
+        user.save()
         if user_type == 'customer':
             CustomerProfile.objects.create(user=user)
         elif user_type == 'artisan':
             ArtisanProfile.objects.create(user=user)
+        return user
