@@ -14,12 +14,13 @@ class RegisterView(generics.CreateAPIView):
     """
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny] # Add this line to allow anyone to register
 
 class LoginView(APIView):
     """
     API view for user login. Returns an auth token.
     """
+    permission_classes = [AllowAny] # Add this line to allow anyone to log in
     def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
@@ -59,4 +60,3 @@ class ArtisanProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.artisan_profile
-
