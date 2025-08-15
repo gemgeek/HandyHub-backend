@@ -14,20 +14,27 @@ class RegisterView(generics.CreateAPIView):
     """
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
-    permission_classes = [AllowAny] # Add this line to allow anyone to register
+    permission_classes = [AllowAny]
 
 class LoginView(APIView):
     """
     API view for user login. Returns an auth token.
     """
-    permission_classes = [AllowAny] # Add this line to allow anyone to log in
+    permission_classes = [AllowAny]
     def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
         user = authenticate(username=username, password=password)
         if user:
             token, created = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key, "user_id": user.pk}, status=status.HTTP_200_OK)
+            # The crucial fix: we now explicitly return the user_type and names
+            return Response({
+                "token": token.key,
+                "user_id": user.pk,
+                "user_type": user.user_type,
+                "first_name": user.first_name,  # Added this
+                "last_name": user.last_name,    # Added this
+            }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Invalid Credentials"}, status=status.HTTP_400_BAD_REQUEST)
 

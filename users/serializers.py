@@ -67,6 +67,7 @@ class RegisterSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     national_id_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
 
+
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with that email already exists.")
@@ -81,8 +82,8 @@ class RegisterSerializer(serializers.Serializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            phone_number=phone_number,
-            user_type=user_type
+            user_type=user_type, # <-- Pass user_type directly here
+            phone_number=phone_number # <-- Pass phone_number directly here
         )
         if user_type == 'customer':
             CustomerProfile.objects.create(user=user)

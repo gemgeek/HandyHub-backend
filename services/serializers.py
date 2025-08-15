@@ -7,4 +7,4 @@ class ServiceCategorySerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = ServiceCategory
-        fields = ['id', 'name', 'description']
+        fields = ['id', 'name', 'description', 'image_url']
