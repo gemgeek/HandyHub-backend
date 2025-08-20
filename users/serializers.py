@@ -15,6 +15,11 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'user_type', 'first_name', 'last_name', 'phone_number']
 
+    def update(self, instance, validated_data):
+        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.save()
+        return instance
+
 
 class CustomerProfileSerializer(serializers.ModelSerializer):
     """
@@ -55,6 +60,21 @@ class ArtisanProfileSerializer(serializers.ModelSerializer):
         profile.locations.set(locations_data)
         return profile
 
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        user = instance.user
+        
+        # Update ArtisanProfile fields
+        instance.business_name = validated_data.get('business_name', instance.business_name)
+        instance.bio = validated_data.get('bio', instance.bio)
+        instance.national_id_number = validated_data.get('national_id_number', instance.national_id_number)
+        instance.save()
+
+        # Update User model fields
+        user.phone_number = user_data.get('phone_number', user.phone_number)
+        user.save()
+        
+        return instance
 
 class RegisterSerializer(serializers.Serializer):
     """
@@ -66,7 +86,8 @@ class RegisterSerializer(serializers.Serializer):
     user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
     phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     national_id_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
-
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -77,16 +98,23 @@ class RegisterSerializer(serializers.Serializer):
         user_type = validated_data.pop('user_type')
         phone_number = validated_data.pop('phone_number', '')
         national_id_number = validated_data.pop('national_id_number', '')
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
         
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            user_type=user_type, # <-- Pass user_type directly here
-            phone_number=phone_number # <-- Pass phone_number directly here
         )
+        user.user_type = user_type
+        user.phone_number = phone_number
+        user.first_name = first_name
+        user.last_name = last_name
+        user.save()
         if user_type == 'customer':
             CustomerProfile.objects.create(user=user)
         elif user_type == 'artisan':
             ArtisanProfile.objects.create(user=user, national_id_number=national_id_number)
         return user
+
+
