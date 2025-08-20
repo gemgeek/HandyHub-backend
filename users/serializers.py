@@ -76,6 +76,7 @@ class ArtisanProfileSerializer(serializers.ModelSerializer):
         
         return instance
 
+
 class RegisterSerializer(serializers.Serializer):
     """
     Serializer for user registration.
@@ -116,5 +117,6 @@ class RegisterSerializer(serializers.Serializer):
         elif user_type == 'artisan':
             ArtisanProfile.objects.create(user=user, national_id_number=national_id_number)
         return user
+
 
 
